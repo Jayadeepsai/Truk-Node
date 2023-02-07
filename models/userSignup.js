@@ -9,6 +9,7 @@ const mongoose= require("mongoose");
 //     zipCode:{type: String, required:true},
 //     landMark:{type: String}
 // } 
+ 
 
 //define the schema here
 const UserProfileSchema = mongoose.Schema({
@@ -16,11 +17,12 @@ const UserProfileSchema = mongoose.Schema({
    _id: mongoose.Schema.Types.ObjectId,
    role:{type: String, required: true},  //fleetOwner, Agent, Transporter, customer
    mobileNo: { type: Number, unique:true, required: true },
-   companyName:{type: String, required: true},
+   companyName:{type: String},
    firstName:  {type:String, required: true},
    lastName:  {type:String, required: true},
    city: {type: String, required: true},
-   routes:{type: Array}
+   routes:{type: Array},
+  
 //    email:{type:String, required: true}
    
 });

@@ -3,6 +3,8 @@ const load = require('../models/postLoad')
 
 const router = new express.Router()
 const mongoose = require('mongoose');
+const quoteGenerate = require('../models/generateQuote');
+
 
 router.post('/post', async (req, res) => {
 
@@ -22,8 +24,6 @@ router.post('/post', async (req, res) => {
         height:req.body.height,
         comments:req.body.comments,
         data:req.body.data
-
-
     })
 
     try {
@@ -54,10 +54,12 @@ router.get('/allLoads', async (req, res) => {
 });
 
 
-router.put('/loads/:id', async (req, res) => {
+
+
+router.put('/updateLoads/:id', async (req, res) => {
     const updates = Object.keys(req.body) //keys will be stored in updates ==> req body fields
     const allowedUpdates = ['OriginLocation', 'DestinationLocation','Number','product','Quantity','expectedPrice',
-'date','typeOfPay','length','breadth','height','comments','data'] // updates that are allowed
+                             'date','typeOfPay','length','breadth','height','comments','data'] // updates that are allowed
     const isValidOperation = updates.every((update) => allowedUpdates.includes(update)) // validating the written key in req.body with the allowed updates
     if (!isValidOperation) {
         return res.status(400).json({ error: 'invalid updates' })
@@ -87,11 +89,11 @@ router.put('/loadDeactivate/:id', async (req, res) => {
         return res.status(400).json({ error: 'invalid updates' })
     }
     try { // used to catch errors
-        const product = await load.findOne({ _id: req.params.id }) //finding the products based on id
+        const product = await quoteGenerate.findOne({ _id: req.params.id }) //finding the products based on id
         if (!product) {
             return res.status(404).json({ message: 'Invalid Product' }) //error status
         }
-        updates.forEach((update) => product[update] = "Deactive") //updating the value
+        updates.forEach((update) => product[update] = req.body[update]) //updating the value
 
         await product.save()
         res.status(400).json({

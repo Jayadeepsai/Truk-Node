@@ -27,12 +27,12 @@ const UserSignup = require("../models/userSignup");
 
 
 
+
 //post method goes here
 router.post('/generateQuote',(req, res, next)=>{
     console.log("generate quotes api is called")
 
    
-
      //find the agents avaibale in the given locations
      UserSignup.find({routes: { $all: ["Warangal", "delhi"] } } ).select().exec().then(doc =>{ 
         console.log(doc.length)
@@ -45,21 +45,29 @@ router.post('/generateQuote',(req, res, next)=>{
            provider.push(item.mobileNo)
            console.log(provider)
         }
+          
+        //insert empty array of bids
+        var bids;
 
        //get the details for the quote generating
        const quote = new quoteGenerate({
         _id: new mongoose.Types.ObjectId,
-        pickupLocation:req.body.pickupLocation,
-        userNumber:req.body.userNumber,
-        dropLocation:req.body.dropLocation,
-        goodsType:req.body.goodsType,
-        quantity:req.body.quantity,
-        vehicleType:req.body.vehicleType,
-        loadCapacity:req.body.loadCapacity,
-        expectedPrice:req.body.expectedPrice,
-        dateRequired:req.body.dateRequired,
+        OriginLocation: req.body.OriginLocation,
+        Number: req.body.Number,
+        DestinationLocation: req.body.DestinationLocation,
+        product: req.body.product,
+        Quantity: req.body.Quantity,
+        data:req.body.data,
+        expectedPrice: req.body.expectedPrice,
+        date: req.body.date,
+        typeOfPay:req.body.typeOfPay,
+        length:req.body.length,
+        breadth:req.body.breadth,
+        height:req.body.height,
+        comments:req.body.comments,
         quoteStatus:req.body.quoteStatus,
-        quoteSentTo:provider
+        quoteSentTo:provider,
+        bids:bids
            });
 
            quote.save().then( result=> {
@@ -89,11 +97,111 @@ router.post('/generateQuote',(req, res, next)=>{
 
 })
 
-    
-
-
 
 });
+
+
+//all Loads
+
+router.get('/allQuotes', async (req, res) => {
+    try {
+        const quote = await quoteGenerate.find()
+
+
+        res.status(200).json({
+            
+          Loads:  quote
+        })
+    } catch (error) {
+        res.status(401).send(error)
+    }
+});
+
+//get by id
+
+router.get('/quoteById/:id', async(req, res) => {
+    try{
+        const quote = await quoteGenerate.find({_id: req.params.id})
+       console.log(quote)
+        if(!quote) {
+            res.status(404).send({error: " not found"})
+        }
+        res.status(200).json(quote) 
+    } catch (error) {
+        res.status(401).json(error)
+    }
+})
+
+//update Load
+
+router.put('/updateQuotes/:id', async (req, res) => {
+    const updates = Object.keys(req.body) //keys will be stored in updates ==> req body fields
+    const allowedUpdates = ['OriginLocation', 'DestinationLocation','Number','product','Quantity','expectedPrice',
+                             'date','typeOfPay','length','breadth','height','comments','data'] // updates that are allowed
+    const isValidOperation = updates.every((update) => allowedUpdates.includes(update)) // validating the written key in req.body with the allowed updates
+    if (!isValidOperation) {
+        return res.status(400).json({ error: 'invalid updates' })
+    }
+    try { // used to catch errors
+        const product = await quoteGenerate.findOne({ _id: req.params.id }) //finding the products based on id
+        if (!product) {
+            return res.status(404).json({ message: 'Invalid Product' }) //error status
+        }
+        updates.forEach((update) => product[update] = req.body[update]) //updating the value
+
+        await product.save()
+        res.status(400).json({
+            updatedProduct: product
+        })
+    } catch (error) {
+        res.status(400).json({ error })
+    }
+})
+
+//Isactive to Deactive Funtion
+
+
+router.put('/quoteDeactivate/:id', async (req, res) => {
+    const updates = Object.keys(req.body) //keys will be stored in updates ==> req body fields
+    const allowedUpdates = ['isActive'] // updates that are allowed
+    const isValidOperation = updates.every((update) => allowedUpdates.includes(update)) // validating the written key in req.body with the allowed updates
+    if (!isValidOperation) {
+        return res.status(400).json({ error: 'invalid updates' })
+    }
+    try { // used to catch errors
+        const product = await quoteGenerate.find({ _id: req.params.id }) //finding the products based on id
+        if (!product) {
+            return res.status(404).json({ message: 'Invalid Product' }) //error status
+        }
+        updates.forEach((update) => product[update] = req.body[update]) //updating the value
+
+        await product.save()
+        res.status(400).json({
+            updatedProduct: product
+        })
+    } catch (error) {
+        res.status(400).json({ error })
+    }
+});
+
+ //Get the load by isActive
+
+ router.get('/loadsByStatus/:isActive',async(req,res)=>{
+    try{
+        const load= await quoteGenerate.find({isActive:req.params.isActive})
+        if(!load){
+            res.status(404).send({error: "Loads not found"})
+        }
+        res.status(400).json({
+            TotalLoads:load.length,
+            load})
+    }catch(error){
+        res.status(401).json({error})
+        console.log(error)
+    }
+})
+
+
 
 
 function sendQuote(orgin, destination){
@@ -105,6 +213,249 @@ function sendQuote(orgin, destination){
   
 }
  
+
+
+
+//LoadMarket APIS where trukers and agents get to see the loads based on their profile. 
+router.post('/LoadMarket', (req, res, next)=>{
+    quoteGenerate.find({quoteSentTo: req.body.mobileNo}).select().exec().then(
+        doc=>{
+            console.log(doc)
+            //check if it has matching docs then send response
+            if(doc.length){
+            res.status(200).json({
+                data: doc,
+                message:"got the matching loads based on the profile",
+                status:"success"
+            })
+        }else{
+            res.status(200).json({
+                message:"no matching loads found",
+                status:"success"
+            })
+
+        }
+        }
+    ).catch(err=>{
+        res.status.json({
+            message:"failed to get loads",
+            status: "failed",
+            error:err
+        })
+    })
+} )
+
+
+
+
+//place bids by truckers or agents
+//get the ID, update the bids array with 
+// Bids:[{
+//    _id:doc.id
+//    mobileNo:6207196729,
+//    Bidprice: 5000,
+//    Negotiate:3000,
+//    tentativefinalPrice:4000
+
+// }]
+/**
+ * once the load is generated by the user then a agent can bid for the quote
+ * and user can negotiate the bid.
+ * 
+ */
+router.post('/placeBid', (req, res, next)=>{
+
+   /***
+    * case 1:  place bid by the Trucker
+    *  MobileNo, BidPrice and QuoteID. 
+    *  
+    * Case 2: now customer can see the bid value and clicks on negotiate
+    * and sends negotaited price
+    * bid id, Negotiated price
+    * 
+    */
+    //this is initial place Bid, this first time bid we are sending only trucke quotes for the bid
+    const placeBid ={
+        _id: new mongoose.Types.ObjectId,
+        mobileNo:req.body.mobileNo,
+        Bidprice:[req.body.Bidprice],
+            
+        Negotiate:[],
+        tentativefinalPrice: req.body.Bidprice,  //first time placed bid by trucker
+        time: new Date().now
+    }
+
+
+
+      //form the query here
+      var query=   { $push: { bids: placeBid }}
+
+
+    //find the docID or quote ID
+    quoteGenerate.findByIdAndUpdate({_id: req.body._id}, query).select().exec().then(
+        doc=>{
+            console.log(doc)
+            //check if it has matching docs then send response
+            if(doc){
+            res.status(200).json({
+                data: doc,
+                message:"got the matching loads based on the profile",
+                status:"success"
+            })
+        }else{
+            res.status(200).json({
+                message:"no matching docs found",
+                status:"success"
+            })
+
+        }
+        }
+    ).catch(err=>{
+        res.status(200).json({
+            message:"failed to bid",
+            status: "failed",
+            error:err
+        })
+    })
+} )
+
+
+
+
+//Update Bids by the trukers and Customers
+router.post('/updateBids', (req, res, next)=>{
+
+  
+/** 
+     //trucker update bid if bid is update by the truker
+     const TruckrUpdateBid ={
+         mobileNo:req.body.mobileNo,
+         Bidprice: req.body.price,
+         tentativefinalPrice: req.body.Bidprice,
+         time: new Date().now
+     }
+
+
+     //if customer updates the bid
+     const CustomerUpdateBid={
+        Negotiate:req.body.price,
+        tentativefinalPrice: req.body.Bidprice,
+        time: new Date().now
+     }
+  */
+
+        console.log(new Date().getTime());
+       var query= {"_id":req.body._id,"bids.mobileNo":req.body.mobileNo}  //quote id and truker mobile no
+       //form the query here
+       var updateBidPrice=   { $push: { "bids.$.Bidprice":{"price":req.body.price, "time": new Date().getTime()}},
+                             $set:{"bids.$.tentativefinalPrice":req.body.price}}
+
+       var updateNegotiatePrice={$push:{"bids.$.Negotiate":{"price":req.body.price, "time": new Date().getTime()}},
+                            $set:{"bids.$.tentativefinalPrice":req.body.price}}
+   
+       var updateData="";
+        
+       if(req.body.isAgent){
+          updateData=updateBidPrice;
+       }else{
+          updateData=updateNegotiatePrice
+       }
+
+       console.log(updateData)
+      // { $push: { "bids.$.Bidprice":req.body.price }}
+     //find the docID or quote ID
+     quoteGenerate.findOneAndUpdate(query,updateData).select().exec().then(
+         doc=>{
+             console.log(doc)
+             //check if it has matching docs then send response
+             if(doc){
+             res.status(200).json({
+                 data: doc,
+                 message:"got the matching loads based on the profile",
+                 status:"success"
+             })
+         }else{
+             res.status(200).json({
+                 message:"no matching docs found",
+                 status:"success"
+             })
+ 
+         }
+         }
+     ).catch(err=>{
+         res.status(200).json({
+             message:"failed to bid",
+             status: "failed",
+             error:err
+         })
+     }) 
+ } )
+ 
+ 
+
+ //ShowBids to customer
+router.post('/showCustomerBids', (req, res, next)=>{
+    quoteGenerate.find({"userNumber":req.body.mobileNo}).select().exec().then(doc=>{
+        res.status(200).json({
+            status:"success",
+            message: "found the bids",
+            bids:doc,
+            count:doc.length
+        })
+    })
+})
+
+
+//show agent side bids and this should restrict to only his bids not other bids
+router.post('/showAgentBids', (req, res, next)=>{
+    quoteGenerate.find({"bids.mobileNo":req.body.mobileNo}).select().exec().then(doc=>{
+         
+        var bidData=[];
+        if(doc){
+            var tempData;
+           for(item of doc){
+            for(i of item.bids){
+                if(i.mobileNo==req.body.mobileNo){
+                    console.log(i.mobileNo);
+                    bidData.push(i);
+                }
+                
+            }
+           }
+
+        //console.log(tempData);
+        res.status(200).json({
+            status:"success",
+            message: "found the bids",
+            bids:bidData,
+            count:doc.length
+        })
+    }else{
+        res.status(200).json({
+            status:"failed",
+            message:"no bids found"
+        })
+    }
+
+
+
+    })
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

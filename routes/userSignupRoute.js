@@ -18,13 +18,15 @@ router.post('/signup', [body('email').isEmail().normalizeEmail()],(req, res, nex
 
     const userSignup = new UserSignup({
         _id: new mongoose.Types.ObjectId,
-        role: req.body.role,
+        role: req.body.role, 
         companyName: req.body.companyName,
         mobileNo: req.body.mobileno,
         city:  req.body.city,
         firstName: req.body.firstName,
         lastName: req.body.lastName,
+        //Upto above is for normal user signup
         routes:req.body.routes
+
         // email: req.body.email
 
            });
@@ -67,8 +69,6 @@ router.post('/signup', [body('email').isEmail().normalizeEmail()],(req, res, nex
 
 //login flow
 router.post('/login', (req, res, next)=>{
-
-     
    var mobileNo=req.body.mobileno;
     console.log(mobileNo)
    UserSignup.findOne({mobileNo:mobileNo}).select().exec().then( doc => {
