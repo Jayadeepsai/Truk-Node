@@ -14,14 +14,14 @@ const bidsData = mongoose.Schema({
         default:"Not accepted"
             },*/
 
-    isAgentAccepted:{
-        type:Boolean,
-        default:false
-    } ,
-    isShipperAccepted:{
-type:Boolean,
-default:false
-    }       
+    isAgentAccepted: {
+        type: Boolean,
+        default: false
+    },
+    isShipperAccepted: {
+        type: Boolean,
+        default: false
+    }
 })
 
 
@@ -38,7 +38,11 @@ const generateQuoteSchema = mongoose.Schema({
         type: String,
         // required:true
     },
-    state: {
+    pickupState: {
+
+        type: Array
+    },
+    dropupState: {
 
         type: Array
     },
@@ -105,9 +109,11 @@ const generateQuoteSchema = mongoose.Schema({
     },
     userAcceptedPrice: {
         type: String,
-        default:"0"
+        default: "0"
     },
-    
+    bidAcceptedTo: {
+        type: Number
+    },
 
 
     quoteSentTo: { type: Array, required: true },

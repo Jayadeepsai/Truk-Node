@@ -35,7 +35,7 @@ router.post('/generateQuote', (req, res, next) => {
 
 
     //find the agents avaibale in the given locations
-    UserSignup.find({ routes: { $all: ["Warangal", "delhi"] } }).select().exec().then(doc => {
+    UserSignup.find({ routes: { $all: [ req.body.pickupState,  req.body.dropupState] } }).select().exec().then(doc => {
         console.log(doc.length)
 
         if (doc.length) { //if no provider available then throw error
@@ -58,7 +58,8 @@ router.post('/generateQuote', (req, res, next) => {
                 DestinationLocation: req.body.DestinationLocation,
                 product: req.body.product,
                 Quantity: req.body.Quantity,
-                state: req.body.state,
+                pickupState: req.body.pickupState,
+                dropupState: req.body.dropupState,
                 data: req.body.data,
                 expectedPrice: req.body.expectedPrice,
                 date: req.body.date,
@@ -105,19 +106,64 @@ router.post('/generateQuote', (req, res, next) => {
 
 //all Loads
 
-router.get('/allQuotes', async (req, res) => {
-    try {
-        const quote = await quoteGenerate.find()
+router.post('/allQuotes', async (req, res) => {
+    quoteGenerate.find({ quoteSentTo: req.body.mobileNo }).select().exec().then(
+        doc => {
+            console.log(doc)
+            //check if it has matching docs then send response
+            if (doc.length) {
+                res.status(200).json({
+                    data: doc,
+                    message: "got the matching loads based on the profile",
+                    status: "success"
+                })
+            } else {
+                res.status(200).json({
+                    message: "no matching loads found",
+                    status: "success"
+                })
 
-
-        res.status(200).json({
-
-            Loads: quote
+            }
+        }
+    ).catch(err => {
+        res.status.json({
+            message: "failed to get loads",
+            status: "failed",
+            error: err
         })
-    } catch (error) {
-        res.status(401).send(error)
-    }
+    })
 });
+
+//Loads in mkyloads tab for specific user number
+
+router.post('/myLoadsForSpecificNumber', (req, res, next) => {
+    quoteGenerate.find({ Number: req.body.Number }).select().exec().then(
+        doc => {
+            console.log(doc)
+            //check if it has matching docs then send response
+            if (doc.length) {
+                res.status(200).json({
+                    Loads:doc.length,
+                    data: doc,
+                    message: "got the matching loads based on the profile",
+                    status: "success"
+                })
+            } else {
+                res.status(200).json({
+                    message: "no matching loads found",
+                    status: "success"
+                })
+
+            }
+        }
+    ).catch(err => {
+        res.status.json({
+            message: "failed to get loads",
+            status: "failed",
+            error: err
+        })
+    })
+})
 
 //get by id
 
@@ -139,7 +185,7 @@ router.get('/quoteById/:id', async (req, res) => {
 router.put('/updateQuotes/:id', async (req, res) => {
     const updates = Object.keys(req.body) //keys will be stored in updates ==> req body fields
     const allowedUpdates = ['OriginLocation', 'DestinationLocation', 'Number', 'product', 'Quantity', 'expectedPrice',
-        'date', 'typeOfPay', 'length', 'breadth', 'height', 'comments', 'data'] // updates that are allowed
+        'date', 'typeOfPay', 'length', 'breadth', 'height', 'comments', 'data','pickupState','dropupState'] // updates that are allowed
     const isValidOperation = updates.every((update) => allowedUpdates.includes(update)) // validating the written key in req.body with the allowed updates
     if (!isValidOperation) {
         return res.status(400).json({ error: 'invalid updates' })
@@ -186,11 +232,23 @@ router.put('/quoteDeactivate/:id', async (req, res) => {
     }
 });
 
-//Get the load by isActive
+//Get the load by status and mobile number
 
-router.get('/loadsByStatus/:isActive', async (req, res) => {
+router.post('/loadsByStatusAndNumber', async (req, res) => {
+    const quote = await quoteGenerate.find()
+  
+    var filter= quote.filter(data=>{
+     return data.Number==req.body.Number
+    })
+    
+   // console.log(filter)
+    
     try {
-        const load = await quoteGenerate.find({ isActive: req.params.isActive })
+      //  const load = await array.find({ isActive: req.params.isActive })
+      var load = filter.filter(data=>{
+        return data.isActive == req.body.isActive
+      })
+      console.log(load)
         if (!load) {
             res.status(404).send({ error: "Loads not found" })
         }
@@ -203,6 +261,8 @@ router.get('/loadsByStatus/:isActive', async (req, res) => {
         console.log(error)
     }
 })
+
+
 
 
 
@@ -221,13 +281,16 @@ function sendQuote(orgin, destination) {
 
 //LoadMarket APIS where trukers and agents get to see the loads based on their profile. 
 router.post('/LoadMarket', (req, res, next) => {
-    quoteGenerate.find({ quoteSentTo: req.body.mobileNo }).select().exec().then(
+    quoteGenerate.find({quoteSentTo: { $all: [req.body.mobileNo] } }).select().exec().then(
         doc => {
             console.log(doc)
+            var load = doc.filter(data=>{
+                return data.isActive == req.body.isActive
+              })
             //check if it has matching docs then send response
-            if (doc.length) {
+            if (load.length) {
                 res.status(200).json({
-                    data: doc,
+                    item: load,
                     message: "got the matching loads based on the profile",
                     status: "success"
                 })
