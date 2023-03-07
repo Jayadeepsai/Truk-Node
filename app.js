@@ -9,6 +9,7 @@ const cors = require('cors')
 const userSignupRoutes = require('./routes/userSignupRoute');
 const generateQuoteRoute= require('./routes/generateQuoteRoute');
 const postLoad = require('./routes/postLoadRoute')
+const postVehicle= require("./routes/vehicleRoutes")
 
 
 
@@ -50,7 +51,9 @@ app.use('/TruckAppUsers', userSignupRoutes);
 //generate quote and create quote
 app.use('/quotes', generateQuoteRoute);
 //generate postLoad
-app.use('/postLoad',postLoad)
+app.use('/postLoad',postLoad);
+
+app.use('/addTruk',postVehicle);
 
 app.get("/", (req, res, next)=>{
     res.json({

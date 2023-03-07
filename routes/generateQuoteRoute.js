@@ -134,7 +134,7 @@ router.post('/allQuotes', async (req, res) => {
     })
 });
 
-//Loads in mkyloads tab for specific user number
+//Loads in myloads tab for specific user number
 
 router.post('/myLoadsForSpecificNumber', (req, res, next) => {
     quoteGenerate.find({ Number: req.body.Number }).select().exec().then(
